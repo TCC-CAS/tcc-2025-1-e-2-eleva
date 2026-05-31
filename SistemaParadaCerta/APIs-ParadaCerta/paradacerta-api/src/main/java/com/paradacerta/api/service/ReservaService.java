@@ -56,7 +56,12 @@ public class ReservaService {
         VagasEstacionamento vagas = vagasRepository.findByEstacionamentoId(est.getId())
                 .orElseThrow(() -> new RequisicaoInvalidaException("Dados de vagas não encontrados para este estacionamento"));
 
-        if (vagas.getQtdVagasReservaveis() <= 0 || vagas.getQtdVagasReservadas() >= vagas.getQtdVagasReservaveis()) {
+        int vagasReservaDisponiveis = VagasReservaUtils.calcularDisponiveisParaReserva(
+                vagas.getQtdVagasReservaveis(),
+                vagas.getQtdVagasReservadas(),
+                vagas.getQtdVagasDisponiveis()
+        );
+        if (vagasReservaDisponiveis <= 0) {
             throw new RequisicaoInvalidaException("Nenhuma vaga disponível para reserva neste estacionamento");
         }
 

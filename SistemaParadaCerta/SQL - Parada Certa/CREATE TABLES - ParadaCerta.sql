@@ -483,15 +483,22 @@
   BEGIN
       SET NOCOUNT ON;
       UPDATE v
-      SET v.qtdVagasDisponiveis = v.qtdVagasTotais - ISNULL((
-              SELECT COUNT(*) FROM SessaoEstacionamento s
-              WHERE s.estacionamentoId = v.estacionamentoId AND s.status = 'ATIVA'
-          ), 0),
-          v.qtdVagasReservadas = ISNULL((
-              SELECT COUNT(*) FROM SessaoEstacionamento s
-              WHERE s.estacionamentoId = v.estacionamentoId AND s.status = 'ATIVA' AND s.reservado = 1
-          ), 0)
+      SET v.qtdVagasDisponiveis = CASE
+              WHEN v.qtdVagasTotais - ISNULL(c.ocupadasOuReservadas, 0) < 0 THEN 0
+              ELSE v.qtdVagasTotais - ISNULL(c.ocupadasOuReservadas, 0)
+          END,
+          v.qtdVagasReservadas = CASE
+              WHEN ISNULL(c.reservasAbertas, 0) > v.qtdVagasReservaveis THEN v.qtdVagasReservaveis
+              ELSE ISNULL(c.reservasAbertas, 0)
+          END
       FROM VagasEstacionamento v
+      OUTER APPLY (
+          SELECT
+              SUM(CASE WHEN s.status IN ('ATIVA', 'AGUARDANDO_CONFIRMACAO', 'EM_USO') THEN 1 ELSE 0 END) AS ocupadasOuReservadas,
+              SUM(CASE WHEN s.reservado = 1 AND s.status IN ('ATIVA', 'AGUARDANDO_CONFIRMACAO', 'EM_USO') THEN 1 ELSE 0 END) AS reservasAbertas
+          FROM SessaoEstacionamento s
+          WHERE s.estacionamentoId = v.estacionamentoId
+      ) c
       WHERE v.estacionamentoId IN (
           SELECT DISTINCT estacionamentoId FROM inserted
           UNION
@@ -635,15 +642,22 @@
   -- =============================================
 
   UPDATE v
-  SET v.qtdVagasDisponiveis = v.qtdVagasTotais - ISNULL((
-          SELECT COUNT(*) FROM SessaoEstacionamento s
-          WHERE s.estacionamentoId = v.estacionamentoId AND s.status = 'ATIVA'
-      ), 0),
-      v.qtdVagasReservadas = ISNULL((
-          SELECT COUNT(*) FROM SessaoEstacionamento s
-          WHERE s.estacionamentoId = v.estacionamentoId AND s.status = 'ATIVA' AND s.reservado = 1
-      ), 0)
-  FROM VagasEstacionamento v;
+  SET v.qtdVagasDisponiveis = CASE
+          WHEN v.qtdVagasTotais - ISNULL(c.ocupadasOuReservadas, 0) < 0 THEN 0
+          ELSE v.qtdVagasTotais - ISNULL(c.ocupadasOuReservadas, 0)
+      END,
+      v.qtdVagasReservadas = CASE
+          WHEN ISNULL(c.reservasAbertas, 0) > v.qtdVagasReservaveis THEN v.qtdVagasReservaveis
+          ELSE ISNULL(c.reservasAbertas, 0)
+      END
+  FROM VagasEstacionamento v
+  OUTER APPLY (
+      SELECT
+          SUM(CASE WHEN s.status IN ('ATIVA', 'AGUARDANDO_CONFIRMACAO', 'EM_USO') THEN 1 ELSE 0 END) AS ocupadasOuReservadas,
+          SUM(CASE WHEN s.reservado = 1 AND s.status IN ('ATIVA', 'AGUARDANDO_CONFIRMACAO', 'EM_USO') THEN 1 ELSE 0 END) AS reservasAbertas
+      FROM SessaoEstacionamento s
+      WHERE s.estacionamentoId = v.estacionamentoId
+  ) c;
   GO
 
   -- =============================================
@@ -977,13 +991,20 @@
   GO
 
   UPDATE v
-  SET v.qtdVagasDisponiveis = v.qtdVagasTotais - ISNULL((
-          SELECT COUNT(*) FROM SessaoEstacionamento s
-          WHERE s.estacionamentoId = v.estacionamentoId AND s.status = 'ATIVA'
-      ), 0),
-      v.qtdVagasReservadas = ISNULL((
-          SELECT COUNT(*) FROM SessaoEstacionamento s
-          WHERE s.estacionamentoId = v.estacionamentoId AND s.status = 'ATIVA' AND s.reservado = 1
-      ), 0)
-  FROM VagasEstacionamento v;
+  SET v.qtdVagasDisponiveis = CASE
+          WHEN v.qtdVagasTotais - ISNULL(c.ocupadasOuReservadas, 0) < 0 THEN 0
+          ELSE v.qtdVagasTotais - ISNULL(c.ocupadasOuReservadas, 0)
+      END,
+      v.qtdVagasReservadas = CASE
+          WHEN ISNULL(c.reservasAbertas, 0) > v.qtdVagasReservaveis THEN v.qtdVagasReservaveis
+          ELSE ISNULL(c.reservasAbertas, 0)
+      END
+  FROM VagasEstacionamento v
+  OUTER APPLY (
+      SELECT
+          SUM(CASE WHEN s.status IN ('ATIVA', 'AGUARDANDO_CONFIRMACAO', 'EM_USO') THEN 1 ELSE 0 END) AS ocupadasOuReservadas,
+          SUM(CASE WHEN s.reservado = 1 AND s.status IN ('ATIVA', 'AGUARDANDO_CONFIRMACAO', 'EM_USO') THEN 1 ELSE 0 END) AS reservasAbertas
+      FROM SessaoEstacionamento s
+      WHERE s.estacionamentoId = v.estacionamentoId
+  ) c;
   GO

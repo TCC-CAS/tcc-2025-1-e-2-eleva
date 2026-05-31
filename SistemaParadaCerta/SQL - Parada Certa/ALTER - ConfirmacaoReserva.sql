@@ -32,6 +32,61 @@ BEGIN
 END
 GO
 
+-- -------------------------------------------------------------
+-- 4) Recalcular vagas considerando reservas aguardando/confirmadas
+--    como vagas indisponiveis para novas entradas/reservas.
+-- -------------------------------------------------------------
+CREATE OR ALTER TRIGGER TR_Sessao_AtualizaVagas
+ON [dbo].[SessaoEstacionamento]
+AFTER INSERT, UPDATE, DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE v
+    SET v.qtdVagasDisponiveis = CASE
+            WHEN v.qtdVagasTotais - ISNULL(c.ocupadasOuReservadas, 0) < 0 THEN 0
+            ELSE v.qtdVagasTotais - ISNULL(c.ocupadasOuReservadas, 0)
+        END,
+        v.qtdVagasReservadas = CASE
+            WHEN ISNULL(c.reservasAbertas, 0) > v.qtdVagasReservaveis THEN v.qtdVagasReservaveis
+            ELSE ISNULL(c.reservasAbertas, 0)
+        END
+    FROM [dbo].[VagasEstacionamento] v
+    OUTER APPLY (
+        SELECT
+            SUM(CASE WHEN s.status IN ('ATIVA', 'AGUARDANDO_CONFIRMACAO', 'EM_USO') THEN 1 ELSE 0 END) AS ocupadasOuReservadas,
+            SUM(CASE WHEN s.reservado = 1 AND s.status IN ('ATIVA', 'AGUARDANDO_CONFIRMACAO', 'EM_USO') THEN 1 ELSE 0 END) AS reservasAbertas
+        FROM [dbo].[SessaoEstacionamento] s
+        WHERE s.estacionamentoId = v.estacionamentoId
+    ) c
+    WHERE v.estacionamentoId IN (
+        SELECT DISTINCT estacionamentoId FROM inserted
+        UNION
+        SELECT DISTINCT estacionamentoId FROM deleted
+    );
+END
+GO
+
+UPDATE v
+SET v.qtdVagasDisponiveis = CASE
+        WHEN v.qtdVagasTotais - ISNULL(c.ocupadasOuReservadas, 0) < 0 THEN 0
+        ELSE v.qtdVagasTotais - ISNULL(c.ocupadasOuReservadas, 0)
+    END,
+    v.qtdVagasReservadas = CASE
+        WHEN ISNULL(c.reservasAbertas, 0) > v.qtdVagasReservaveis THEN v.qtdVagasReservaveis
+        ELSE ISNULL(c.reservasAbertas, 0)
+    END
+FROM [dbo].[VagasEstacionamento] v
+OUTER APPLY (
+    SELECT
+        SUM(CASE WHEN s.status IN ('ATIVA', 'AGUARDANDO_CONFIRMACAO', 'EM_USO') THEN 1 ELSE 0 END) AS ocupadasOuReservadas,
+        SUM(CASE WHEN s.reservado = 1 AND s.status IN ('ATIVA', 'AGUARDANDO_CONFIRMACAO', 'EM_USO') THEN 1 ELSE 0 END) AS reservasAbertas
+    FROM [dbo].[SessaoEstacionamento] s
+    WHERE s.estacionamentoId = v.estacionamentoId
+) c;
+GO
+
 IF NOT EXISTS (
     SELECT 1
     FROM sys.columns

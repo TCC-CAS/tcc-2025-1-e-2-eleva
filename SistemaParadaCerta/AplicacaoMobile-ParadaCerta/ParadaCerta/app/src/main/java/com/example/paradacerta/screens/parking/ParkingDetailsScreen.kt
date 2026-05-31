@@ -505,6 +505,10 @@ fun ParkingDetailsScreen(
                     val statusFuncionamento by rememberEstacionamentoStatus(
                         p.horarioAbertura, p.horarioFechamento
                     )
+                    val vagasReservaDisponiveis = (
+                        p.qtdVagasReservaDisponiveis
+                            ?: minOf(p.qtdVagasReservaveis, p.qtdVagasDisponiveis)
+                    ).coerceAtLeast(0)
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -756,7 +760,7 @@ fun ParkingDetailsScreen(
                                 }
                             }
 
-                            p.qtdVagasReservaveis <= 0 -> {
+                            vagasReservaDisponiveis <= 0 -> {
                                 // Sem vagas reserváveis disponíveis
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
@@ -816,7 +820,7 @@ fun ParkingDetailsScreen(
                                                 )
                                             }
                                             Text(
-                                                text = "${p.qtdVagasReservaveis} disponíveis",
+                                                text = "$vagasReservaDisponiveis disponíveis",
                                                 fontWeight = FontWeight.Bold,
                                                 color = VerdePrincipal
                                             )

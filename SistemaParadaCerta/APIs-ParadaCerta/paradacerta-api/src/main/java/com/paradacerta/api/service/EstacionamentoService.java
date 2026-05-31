@@ -300,6 +300,15 @@ public class EstacionamentoService {
                 e.setQtdVagasDisponiveis(v.getQtdVagasDisponiveis());
                 e.setQtdVagasReservaveis(v.getQtdVagasReservaveis());
                 e.setQtdVagasReservadas(v.getQtdVagasReservadas());
+                e.setQtdVagasReservaDisponiveis(
+                        Boolean.TRUE.equals(e.getPermiteReserva())
+                                ? VagasReservaUtils.calcularDisponiveisParaReserva(
+                                        v.getQtdVagasReservaveis(),
+                                        v.getQtdVagasReservadas(),
+                                        v.getQtdVagasDisponiveis()
+                                )
+                                : 0
+                );
             }
         }
     }

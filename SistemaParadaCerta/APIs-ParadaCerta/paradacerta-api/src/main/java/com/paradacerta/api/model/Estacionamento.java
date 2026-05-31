@@ -78,6 +78,9 @@ public class Estacionamento {
     @Transient
     private Integer qtdVagasReservadas = 0;
 
+    @Transient
+    private Integer qtdVagasReservaDisponiveis = 0;
+
     // ── Endereço detalhado (Script 04-ALTER) ────────────────────────────────
     // Mantém-se a coluna [endereco] (texto livre) como espelho derivado dos
     // campos abaixo para compatibilidade com o app mobile e listagens existentes.

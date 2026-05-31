@@ -19,6 +19,7 @@ data class Estacionamento(
     val ativo: Boolean = true,
     val permiteReserva: Boolean = false,
     val qtdVagasReservaveis: Int = 0,
+    val qtdVagasReservaDisponiveis: Int? = null,
     val pixKey: String? = null,
     @SerializedName("isPremium")
     val isPremium: Boolean = false,
