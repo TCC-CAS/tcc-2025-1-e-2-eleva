@@ -477,6 +477,13 @@ fun ParkingDetailsScreen(
                                 erroReservaLocal = "Selecione um horario valido para a reserva."
                                 return@Button
                             }
+                            if (horario.inicioMillis <= System.currentTimeMillis()) {
+                                erroReservaLocal = "Horario selecionado ja passou. Escolha um horario posterior ao atual."
+                                horarioSelecionado = null
+                                horaReservaSelecionada = null
+                                minutoReservaSelecionado = null
+                                return@Button
+                            }
                             val inicioReserva = montarInicioReservaPrevistoIso(horario.inicioMillis)
                             if (inicioReserva.isBlank()) {
                                 erroReservaLocal = "Horario selecionado esta no passado."
@@ -1293,12 +1300,18 @@ private data class HorarioReservaOpcao(
 private fun gerarHorarios(abertura: String?, fechamento: String?): List<HorarioReservaOpcao> {
     val inicioMin = parseHorarioMinutos(abertura) ?: return emptyList()
     val fimMin = parseHorarioMinutos(fechamento) ?: return emptyList()
-    val agora = System.currentTimeMillis()
+    val agoraCal = Calendar.getInstance()
+    val agora = agoraCal.timeInMillis
     val slots = mutableListOf<HorarioReservaOpcao>()
 
     fun primeiroSlotMeiaHoraEmOuDepois(minutoAbsoluto: Int): Int {
         val resto = minutoAbsoluto.floorMod(30)
         return if (resto == 0) minutoAbsoluto else minutoAbsoluto + (30 - resto)
+    }
+
+    fun ehHoje(cal: Calendar): Boolean {
+        return cal.get(Calendar.YEAR) == agoraCal.get(Calendar.YEAR) &&
+            cal.get(Calendar.DAY_OF_YEAR) == agoraCal.get(Calendar.DAY_OF_YEAR)
     }
 
     fun adicionarJanela(diaOffset: Int, inicio: Int, duracao: Int) {
@@ -1319,7 +1332,7 @@ private fun gerarHorarios(abertura: String?, fechamento: String?): List<HorarioR
             cal.set(Calendar.HOUR_OF_DAY, minutoDoDia / 60)
             cal.set(Calendar.MINUTE, minutoDoDia % 60)
 
-            if (cal.timeInMillis > agora) {
+            if (ehHoje(cal) && cal.timeInMillis > agora) {
                 slots.add(
                     HorarioReservaOpcao(
                         label = String.format("%02d:%02d", minutoDoDia / 60, minutoDoDia % 60),
@@ -1342,7 +1355,6 @@ private fun gerarHorarios(abertura: String?, fechamento: String?): List<HorarioR
     when {
         inicioMin == fimMin -> {
             adicionarJanela(0, inicioMin, duracao)
-            if (slots.size < 48) adicionarJanela(1, inicioMin, duracao)
         }
         fimMin < inicioMin -> {
             adicionarJanela(-1, inicioMin, duracao)

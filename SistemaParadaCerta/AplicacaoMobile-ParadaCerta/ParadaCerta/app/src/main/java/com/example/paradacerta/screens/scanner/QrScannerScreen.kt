@@ -50,7 +50,6 @@ import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.Locale
 import java.util.concurrent.Executors
-import com.example.paradacerta.BuildConfig
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -71,7 +70,6 @@ fun QrScannerScreen(
     val reservaViewModel: ReservaViewModel = viewModel()
     val confirmarState by reservaViewModel.confirmarState.collectAsState()
     val scope = rememberCoroutineScope()
-    var loadingEntradaDemo by remember { androidx.compose.runtime.mutableStateOf(false) }
     val ehModoConfirmacao = modo == "confirmar_reserva"
 
     // Mostra erro de confirmação e libera scanner para nova tentativa
@@ -92,8 +90,6 @@ fun QrScannerScreen(
 
     // Dados pendentes para quando o picker de veículo está sendo mostrado
     var pendingEntradaPayload by remember { mutableStateOf<QrCodePayload?>(null) }
-    var pendingDemoEntrada by remember { mutableStateOf(false) }
-    var pendingDemoEstacionamento by remember { mutableStateOf<Estacionamento?>(null) }
     var showVeiculoPicker by remember { mutableStateOf(false) }
 
     // Diálogo: tentativa de entrada com sessão já ativa
@@ -115,8 +111,6 @@ fun QrScannerScreen(
     // AtomicBoolean elevado para o nível do composable para poder resetar a partir do diálogo
     val jaProcessou = remember { java.util.concurrent.atomic.AtomicBoolean(false) }
 
-    // Carrega estacionamentos para o botão de demo
-
     // Procura o pixKey do estacionamento na lista já carregada do backend.
     // Útil quando entrarmos por QR físico (cujo payload não traz pixKey) — assim
     // a SessaoAtiva já chega à Home com a chave Pix preenchida.
@@ -127,12 +121,10 @@ fun QrScannerScreen(
             return
         }
         scope.launch {
-            loadingEntradaDemo = true
             val estacionamento = runCatching {
                 val response = ParadaCertaClient.service.buscarEstacionamentoPorId(estId)
                 if (response.isSuccessful) response.body() else null
             }.getOrNull()
-            loadingEntradaDemo = false
             onLoaded(estacionamento)
         }
     }
@@ -225,46 +217,6 @@ fun QrScannerScreen(
         }
     }
 
-    fun simularEntradaComEstacionamento(est: Estacionamento) {
-        when (veiculos.size) {
-            0 -> veiculoInvalidoDialog = true
-            1 -> {
-                val veiculo = veiculos.first()
-                iniciarEntradaComVeiculo(
-                    veiculo, est.id, est.nome, est.precoHora, est.pixKey.orEmpty()
-                )
-            }
-            else -> {
-                pendingDemoEstacionamento = est
-                pendingDemoEntrada = true
-                showVeiculoPicker = true
-            }
-        }
-    }
-
-    fun simularEntradaAleatoria() {
-        if (sessaoAtiva != null) {
-            sessaoAtivaDialog = true
-            return
-        }
-        val lista = mapState.estacionamentos
-        if (lista.isNotEmpty()) {
-            simularEntradaComEstacionamento(lista.random())
-            return
-        }
-        scope.launch {
-            loadingEntradaDemo = true
-            val estacionamentos = runCatching {
-                val response = ParadaCertaClient.service.listarEstacionamentos()
-                if (response.isSuccessful) response.body().orEmpty() else emptyList()
-            }.getOrDefault(emptyList())
-            loadingEntradaDemo = false
-            if (estacionamentos.isNotEmpty()) {
-                simularEntradaComEstacionamento(estacionamentos.random())
-            }
-        }
-    }
-
     // Diálogo de seleção de veículo antes de iniciar sessão
     if (showVeiculoPicker) {
         VeiculoPickerDialog(
@@ -272,34 +224,14 @@ fun QrScannerScreen(
             onVeiculoSelecionado = { veiculo ->
                 showVeiculoPicker = false
                 val payload = pendingEntradaPayload
-                val lista = mapState.estacionamentos
-                when {
-                    payload != null -> {
-                        pendingEntradaPayload = null
-                        iniciarEntradaComPayload(veiculo, payload)
-                    }
-                    pendingDemoEntrada && pendingDemoEstacionamento != null -> {
-                        pendingDemoEntrada = false
-                        val est = pendingDemoEstacionamento!!
-                        pendingDemoEstacionamento = null
-                        iniciarEntradaComVeiculo(
-                            veiculo, est.id, est.nome, est.precoHora, est.pixKey.orEmpty()
-                        )
-                    }
-                    pendingDemoEntrada && lista.isNotEmpty() -> {
-                        pendingDemoEntrada = false
-                        val est = lista.random()
-                        iniciarEntradaComVeiculo(
-                            veiculo, est.id, est.nome, est.precoHora, est.pixKey.orEmpty()
-                        )
-                    }
+                if (payload != null) {
+                    pendingEntradaPayload = null
+                    iniciarEntradaComPayload(veiculo, payload)
                 }
             },
             onDismiss = {
                 showVeiculoPicker = false
                 pendingEntradaPayload = null
-                pendingDemoEntrada = false
-                pendingDemoEstacionamento = null
                 jaProcessou.set(false)
             }
         )
@@ -563,9 +495,6 @@ fun QrScannerScreen(
                     CameraPreviewWithScanner(
                         jaProcessou = jaProcessou,
                         modoConfirmacao = ehModoConfirmacao,
-                        mostrarDemo = BuildConfig.DEBUG,
-                        onDemoEntrada = { simularEntradaAleatoria() },
-                        isLoadingDemo = loadingEntradaDemo || mapState.isLoading,
                         onQrDetected = { payload ->
                             val tipo = (payload.tipo ?: payload.type ?: "").uppercase()
 
@@ -667,9 +596,6 @@ fun QrScannerScreen(
 private fun CameraPreviewWithScanner(
     jaProcessou: java.util.concurrent.atomic.AtomicBoolean,
     modoConfirmacao: Boolean = false,
-    mostrarDemo: Boolean = false,
-    onDemoEntrada: () -> Unit,
-    isLoadingDemo: Boolean,
     onQrDetected: (QrCodePayload) -> Unit
 ) {
     val context = LocalContext.current
@@ -814,37 +740,6 @@ private fun CameraPreviewWithScanner(
                 textAlign = TextAlign.Center
             )
 
-            if (!modoConfirmacao && mostrarDemo) {
-                HorizontalDivider(color = Color.White.copy(alpha = 0.3f))
-
-                OutlinedButton(
-                    onClick = onDemoEntrada,
-                    enabled = !isLoadingDemo,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color.White,
-                        containerColor = Color.White.copy(alpha = 0.15f)
-                    )
-                ) {
-                    if (isLoadingDemo) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            color = Color.White,
-                            strokeWidth = 2.dp
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Carregando...", color = Color.White)
-                    } else {
-                        Icon(
-                            imageVector = androidx.compose.material.icons.Icons.Default.QrCode,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Simular entrada (demo)", color = Color.White)
-                    }
-                }
-            }
         }
     }
 }

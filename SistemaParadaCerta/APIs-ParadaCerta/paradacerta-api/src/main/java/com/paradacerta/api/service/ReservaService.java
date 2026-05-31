@@ -447,7 +447,13 @@ public class ReservaService {
             throw new RequisicaoInvalidaException("Horário inicial da reserva é obrigatório");
         }
 
-        if (inicioReservaPrevisto.isBefore(nowSaoPaulo())) {
+        LocalDateTime agora = nowSaoPaulo();
+
+        if (!inicioReservaPrevisto.toLocalDate().equals(agora.toLocalDate())) {
+            throw new RequisicaoInvalidaException("Reserva permitida apenas para o dia atual");
+        }
+
+        if (inicioReservaPrevisto.isBefore(agora)) {
             throw new RequisicaoInvalidaException("Horário da reserva não pode estar no passado");
         }
 
