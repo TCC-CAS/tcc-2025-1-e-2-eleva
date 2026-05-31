@@ -360,18 +360,12 @@ public class ReservaService {
     }
 
     /**
-     * A cobranca da reserva sempre conta a partir do horario escolhido pelo
-     * motorista. dataHoraConfirmacao fica apenas como fallback para registros
-     * legados que ainda nao tenham inicioReservaPrevisto.
+     * A cobranca da reserva conta a partir do horario escolhido pelo motorista,
+     * exceto quando a confirmacao presencial ocorrer 20min ou mais antes do
+     * previsto. Nesse caso, usa o horario real de entrada.
      */
     private LocalDateTime inicioDeUsoParaCalculo(SessaoEstacionamento sessao) {
-        if (sessao.getInicioReservaPrevisto() != null) {
-            return sessao.getInicioReservaPrevisto();
-        }
-        if (sessao.getDataHoraConfirmacao() != null) {
-            return sessao.getDataHoraConfirmacao();
-        }
-        return sessao.getHoraEntrada();
+        return ReservaTempoUtils.inicioDeUsoParaCalculo(sessao);
     }
 
     // ── Compatibilidade: endpoints antigos ───────────────────────────────────

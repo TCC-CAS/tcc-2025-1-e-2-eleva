@@ -556,7 +556,12 @@ public class OperacaoService {
                 .orElseThrow(() -> new UsuarioNaoEncontradoException("Sessão não encontrada"));
 
         // Admin pode encerrar entrada comum (ATIVA) ou reserva confirmada (EM_USO).
-        // Reservas AGUARDANDO_CONFIRMACAO devem usar /cancelar.
+        // Reservas AGUARDANDO_CONFIRMACAO so podem ser finalizadas por no-show
+        // apos 1h do horario previsto; antes disso continuam no fluxo de cancelar.
+        if (sessao.getStatus() == SessaoStatus.AGUARDANDO_CONFIRMACAO) {
+            return encerrarReservaNaoComparecida(sessao);
+        }
+
         if (sessao.getStatus() != SessaoStatus.ATIVA
                 && sessao.getStatus() != SessaoStatus.EM_USO) {
             throw new ConflictException("Sessão já encerrada, cancelada ou aguardando confirmação");
@@ -577,6 +582,37 @@ public class OperacaoService {
 
         sessaoRepository.save(sessao);
         return ApiResponse.ok("Sessão encerrada");
+    }
+
+    private ApiResponse encerrarReservaNaoComparecida(SessaoEstacionamento sessao) {
+        if (!Boolean.TRUE.equals(sessao.getReservado())) {
+            throw new ConflictException("Sessao aguardando confirmacao nao e uma reserva");
+        }
+
+        LocalDateTime agora = nowSaoPaulo();
+        LocalDateTime limite = ReservaTempoUtils.limiteNoShowAdmin(sessao);
+        if (limite == null) {
+            throw new RequisicaoInvalidaException("Reserva sem horario previsto para validar no-show");
+        }
+        if (!ReservaTempoUtils.podeFinalizarNoShowAdmin(sessao, agora)) {
+            throw new ConflictException(
+                    "A reserva ainda esta no prazo de chegada. O admin so pode finalizar apos 1 hora do horario previsto."
+            );
+        }
+
+        BigDecimal valorAntecipado = sessao.getValorPago() != null
+                ? sessao.getValorPago().setScale(2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+
+        sessao.setStatus(SessaoStatus.ENCERRADA);
+        sessao.setHoraSaida(agora);
+        sessao.setHoraPagamento(agora);
+        sessao.setValorFinalCalculado(valorAntecipado);
+        sessao.setValorRestanteCobrado(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
+        sessao.setValorPago(valorAntecipado);
+        sessaoRepository.save(sessao);
+
+        return ApiResponse.ok("Reserva finalizada por nao comparecimento. Valor antecipado mantido como recebido.");
     }
 
     @Transactional

@@ -444,8 +444,7 @@ fun QrScannerScreen(
         val sessao = sessaoAtiva
         val moedaExit = NumberFormat.getCurrencyInstance(Locale("pt", "BR"))
         val extraMsExit = sessao?.let {
-            val baseReserva = it.inicioReservaPrevisto ?: it.horaEntrada
-            System.currentTimeMillis() - baseReserva - 3_600_000L
+            System.currentTimeMillis() - it.inicioUsoParaCalculo - 3_600_000L
         } ?: 0L
         val extraMinExit = (extraMsExit / 60_000L).coerceAtLeast(0L)
         val temExtraExit = extraMinExit > 15

@@ -21,7 +21,7 @@ import java.time.YearMonth;
  * Catálogo (preços em BRL — referência apenas; TCC não cobra de fato):
  *  - BASIC    : trial 30 dias  — R$ 0,00.
  *  - STANDARD : R$ 149,90/mês  ou R$ 1.798,80/ano.
- *  - PREMIUM  : R$ 399,90/mês  ou R$ 4.798,80/ano.
+ *  - PREMIUM  : R$ 199,90/mês  ou R$ 2.398,80/ano.
  *
  * Limites/recursos:
  *  - Fotos: BASIC=3, STANDARD=3, PREMIUM=5.
@@ -44,8 +44,8 @@ public class PlanoService {
 
     private static final BigDecimal PRECO_STANDARD_MENSAL = new BigDecimal("149.90");
     private static final BigDecimal PRECO_STANDARD_ANUAL  = new BigDecimal("1798.80");
-    private static final BigDecimal PRECO_PREMIUM_MENSAL  = new BigDecimal("399.90");
-    private static final BigDecimal PRECO_PREMIUM_ANUAL   = new BigDecimal("4798.80");
+    private static final BigDecimal PRECO_PREMIUM_MENSAL  = new BigDecimal("199.90");
+    private static final BigDecimal PRECO_PREMIUM_ANUAL   = new BigDecimal("2398.80");
 
     private final EstacionamentoRepository estacionamentoRepository;
     private final AssinaturaPlanoPagamentoRepository assinaturaPagamentoRepository;

@@ -254,8 +254,7 @@ fun HomeScreen(
         val divida = devidaReservaExtra!!
         val moeda = NumberFormat.getCurrencyInstance(Locale("pt", "BR"))
         val extraMin = sessaoAtiva?.let {
-            val baseReserva = it.inicioReservaPrevisto ?: it.horaEntrada
-            ((System.currentTimeMillis() - baseReserva - 3_600_000L) / 60_000L).coerceAtLeast(0L)
+            ((System.currentTimeMillis() - it.inicioUsoParaCalculo - 3_600_000L) / 60_000L).coerceAtLeast(0L)
         } ?: 0L
         val horas = extraMin / 60
         val mins = extraMin % 60

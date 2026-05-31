@@ -681,6 +681,24 @@
       return reservaPaga(s) ? "Pago" : "Pendente";
     }
 
+    function parseDataHoraLocal(valor) {
+      if (!valor) return null;
+      const data = new Date(valor);
+      return Number.isNaN(data.getTime()) ? null : data;
+    }
+
+    function limiteNoShowReserva(s) {
+      const inicio = parseDataHoraLocal(s && s.inicioReservaPrevisto);
+      if (!inicio) return null;
+      return new Date(inicio.getTime() + 60 * 60 * 1000);
+    }
+
+    function podeFinalizarNoShowReserva(s) {
+      if (!s || !s.reservado || s.status !== "AGUARDANDO_CONFIRMACAO") return false;
+      const limite = limiteNoShowReserva(s);
+      return !!limite && Date.now() >= limite.getTime();
+    }
+
     function ehAcessoTotem(s) {
       return s && (s.clienteId === null || s.clienteId === undefined);
     }
@@ -755,20 +773,24 @@
 
           // Permissões por status (alinhadas ao backend):
           //  - ATIVA: pode finalizar e cancelar (fluxo legado / entrada comum)
-          //  - AGUARDANDO_CONFIRMACAO: admin pode cancelar (motorista ainda não chegou)
-          //                            e gerar/imprimir o QR Code para o motorista escanear
+          //  - AGUARDANDO_CONFIRMACAO: admin pode cancelar, gerar QR e finalizar
+          //                            por no-show quando passar 1h do horario previsto
           //  - EM_USO: admin pode finalizar; cancelamento BLOQUEADO
           //            (reserva já confirmada presencialmente)
           //  - ENCERRADA / CANCELADA: nada
-          const podeFinalizar = s.status === "ATIVA" || s.status === "EM_USO";
+          const podeFinalizarNoShow = podeFinalizarNoShowReserva(s);
+          const podeFinalizar = s.status === "ATIVA" || s.status === "EM_USO" || podeFinalizarNoShow;
           const podeCancelar  = s.status === "ATIVA" || s.status === "AGUARDANDO_CONFIRMACAO";
           const podeGerarQrConfirmacao = s.reservado && s.status === "AGUARDANDO_CONFIRMACAO" && !!s.qrCode;
+          const textoFinalizar = podeFinalizarNoShow ? "Finalizar no-show" : "Finalizar";
 
           let saidaTexto = "-";
           if (s.horaSaida) saidaTexto = pcFormatarDataHora(s.horaSaida);
           else if (s.status === "ATIVA") saidaTexto = "Em aberto";
           else if (s.status === "EM_USO") saidaTexto = "Em uso";
-          else if (s.status === "AGUARDANDO_CONFIRMACAO") saidaTexto = "Aguardando motorista";
+          else if (s.status === "AGUARDANDO_CONFIRMACAO") {
+            saidaTexto = podeFinalizarNoShow ? "No-show liberado" : "Aguardando motorista";
+          }
 
           tr.innerHTML = `
             <td class="px-6 py-4">
@@ -794,7 +816,7 @@
             <td class="px-6 py-4">
               <div class="flex flex-wrap gap-2">
                 ${ podeGerarQrConfirmacao ? `<button data-sid="${s.id}" class="btn-gerar-qr bg-amber-500 hover:bg-amber-600 text-white font-bold px-3 py-2 rounded-xl transition text-xs">Gerar QR Code de confirmação</button>` : "" }
-                ${ podeFinalizar ? `<button onclick="finalizarSessao(${s.id})" class="bg-green-600 hover:bg-green-700 text-white font-bold px-3 py-2 rounded-xl transition text-xs">Finalizar</button>` : "" }
+                ${ podeFinalizar ? `<button onclick="finalizarSessao(${s.id}, ${podeFinalizarNoShow})" class="bg-green-600 hover:bg-green-700 text-white font-bold px-3 py-2 rounded-xl transition text-xs">${textoFinalizar}</button>` : "" }
                 ${ podeCancelar  ? `<button onclick="cancelarSessao(${s.id})" class="bg-red-500 hover:bg-red-600 text-white font-bold px-3 py-2 rounded-xl transition text-xs">Cancelar</button>` : "" }
                 <button onclick='verDetalhes(${s.id})' class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-2 rounded-xl transition text-xs">Detalhes</button>
               </div>
@@ -835,11 +857,14 @@
       }
     }
 
-    async function finalizarSessao(sessaoId) {
-      if (!confirm("Finalizar a sessão #" + sessaoId + "?")) return;
+    async function finalizarSessao(sessaoId, noShow = false) {
+      const pergunta = noShow
+        ? "Finalizar a reserva #" + sessaoId + " por nao comparecimento? O valor antecipado sera mantido como recebido."
+        : "Finalizar a sessão #" + sessaoId + "?";
+      if (!confirm(pergunta)) return;
       try {
         await pcFetch("/api/operacao/" + sessaoId + "/finalizar", { method: "POST" });
-        alert("Sessão finalizada.");
+        alert(noShow ? "Reserva finalizada por nao comparecimento." : "Sessão finalizada.");
         await Promise.all([carregarSessoes(), carregarResumo()]);
       } catch (e) {
         console.error(e);

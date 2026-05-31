@@ -4,7 +4,6 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -68,6 +67,8 @@ fun ParkingDetailsScreen(
     var showReservaDialog by remember { mutableStateOf(false) }
     var showAvaliacoes by remember { mutableStateOf(false) }
     var horarioSelecionado by remember { mutableStateOf<HorarioReservaOpcao?>(null) }
+    var horaReservaSelecionada by remember { mutableStateOf<String?>(null) }
+    var minutoReservaSelecionado by remember { mutableStateOf<String?>(null) }
     var veiculoSelecionado by remember(veiculos) { mutableStateOf(veiculos.firstOrNull()) }
     var veiculoInvalidoDialog by remember { mutableStateOf(false) }
     var erroReservaLocal by remember { mutableStateOf<String?>(null) }
@@ -103,12 +104,31 @@ fun ParkingDetailsScreen(
         val horarios = remember(p.horarioAbertura, p.horarioFechamento) {
             gerarHorarios(p.horarioAbertura, p.horarioFechamento)
         }
+        val horasDisponiveis = remember(horarios) {
+            horarios.map { it.hora }.distinct()
+        }
+        val minutosDisponiveis = remember(horarios, horaReservaSelecionada) {
+            val hora = horaReservaSelecionada
+            if (hora == null) emptyList()
+            else horarios.filter { it.hora == hora }.map { it.minuto }.distinct()
+        }
         val valorReembolso = p.precoHora * 0.15
         val valorRetido    = p.precoHora - valorReembolso
+
+        LaunchedEffect(horarios) {
+            val selecionado = horarioSelecionado
+            if (selecionado != null && horarios.none { it.inicioMillis == selecionado.inicioMillis }) {
+                horarioSelecionado = null
+                horaReservaSelecionada = null
+                minutoReservaSelecionado = null
+            }
+        }
 
         ModalBottomSheet(
             onDismissRequest = {
                 horarioSelecionado = null
+                horaReservaSelecionada = null
+                minutoReservaSelecionado = null
                 erroReservaLocal = null
                 showReservaDialog = false
             },
@@ -161,19 +181,58 @@ fun ParkingDetailsScreen(
                         )
                     } else {
                         Row(
-                            modifier = Modifier.horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            horarios.forEach { horario ->
-                                FilterChip(
-                                    selected = horarioSelecionado == horario,
-                                    onClick = {
-                                        horarioSelecionado = horario
-                                        erroReservaLocal = null
-                                    },
-                                    label = { Text(horario.label) }
-                                )
-                            }
+                            ReservaDropdownField(
+                                label = "Hora",
+                                value = horaReservaSelecionada,
+                                options = horasDisponiveis,
+                                modifier = Modifier.weight(1f),
+                                onSelect = { hora ->
+                                    horaReservaSelecionada = hora
+                                    val minutosDaHora = horarios
+                                        .filter { it.hora == hora }
+                                        .map { it.minuto }
+                                        .distinct()
+                                    val minuto = minutoReservaSelecionado
+                                        ?.takeIf { it in minutosDaHora }
+                                        ?: minutosDaHora.firstOrNull()
+                                    minutoReservaSelecionado = minuto
+                                    horarioSelecionado = minuto?.let { minutoSelecionado ->
+                                        horarios.firstOrNull {
+                                            it.hora == hora && it.minuto == minutoSelecionado
+                                        }
+                                    }
+                                    erroReservaLocal = null
+                                }
+                            )
+                            ReservaDropdownField(
+                                label = "Minuto",
+                                value = minutoReservaSelecionado,
+                                options = minutosDisponiveis,
+                                enabled = horaReservaSelecionada != null && minutosDisponiveis.isNotEmpty(),
+                                modifier = Modifier.weight(1f),
+                                onSelect = { minuto ->
+                                    minutoReservaSelecionado = minuto
+                                    val hora = horaReservaSelecionada
+                                    horarioSelecionado = if (hora != null) {
+                                        horarios.firstOrNull {
+                                            it.hora == hora && it.minuto == minuto
+                                        }
+                                    } else {
+                                        null
+                                    }
+                                    erroReservaLocal = null
+                                }
+                            )
+                        }
+                        horarioSelecionado?.let { horario ->
+                            Text(
+                                text = "Selecionado: ${horario.label}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = CinzaMedio
+                            )
                         }
                     }
                 }
@@ -394,6 +453,8 @@ fun ParkingDetailsScreen(
                     OutlinedButton(
                         onClick = {
                             horarioSelecionado = null
+                            horaReservaSelecionada = null
+                            minutoReservaSelecionado = null
                             erroReservaLocal = null
                             showReservaDialog = false
                         },
@@ -1167,16 +1228,78 @@ private fun montarUrlFoto(urlRetornada: String): String {
     }
 }
 
+@Composable
+private fun ReservaDropdownField(
+    label: String,
+    value: String?,
+    options: List<String>,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    onSelect: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box(modifier = modifier) {
+        OutlinedButton(
+            onClick = { if (enabled) expanded = true },
+            enabled = enabled,
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.Start
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = CinzaMedio
+                )
+                Text(
+                    text = value ?: "--",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            Icon(
+                imageVector = Icons.Default.ArrowDropDown,
+                contentDescription = null
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option) },
+                    onClick = {
+                        expanded = false
+                        onSelect(option)
+                    }
+                )
+            }
+        }
+    }
+}
+
 private data class HorarioReservaOpcao(
     val label: String,
     val inicioMillis: Long
-)
+) {
+    val hora: String = label.substringBefore(":")
+    val minuto: String = label.substringAfter(":")
+}
 
 private fun gerarHorarios(abertura: String?, fechamento: String?): List<HorarioReservaOpcao> {
     val inicioMin = parseHorarioMinutos(abertura) ?: return emptyList()
     val fimMin = parseHorarioMinutos(fechamento) ?: return emptyList()
     val agora = System.currentTimeMillis()
     val slots = mutableListOf<HorarioReservaOpcao>()
+
+    fun primeiroSlotMeiaHoraEmOuDepois(minutoAbsoluto: Int): Int {
+        val resto = minutoAbsoluto.floorMod(30)
+        return if (resto == 0) minutoAbsoluto else minutoAbsoluto + (30 - resto)
+    }
 
     fun adicionarJanela(diaOffset: Int, inicio: Int, duracao: Int) {
         val base = Calendar.getInstance().apply {
@@ -1187,9 +1310,9 @@ private fun gerarHorarios(abertura: String?, fechamento: String?): List<HorarioR
             add(Calendar.DAY_OF_YEAR, diaOffset)
         }
 
-        var minutoJanela = 0
-        while (minutoJanela <= duracao - 60) {
-            val minutoAbsoluto = inicio + minutoJanela
+        var minutoAbsoluto = primeiroSlotMeiaHoraEmOuDepois(inicio)
+        val fimExclusivo = inicio + duracao
+        while (minutoAbsoluto < fimExclusivo) {
             val minutoDoDia = minutoAbsoluto.floorMod(24 * 60)
             val cal = base.clone() as Calendar
             cal.add(Calendar.DAY_OF_YEAR, minutoAbsoluto.floorDiv(24 * 60))
@@ -1204,7 +1327,7 @@ private fun gerarHorarios(abertura: String?, fechamento: String?): List<HorarioR
                     )
                 )
             }
-            minutoJanela += 60
+            minutoAbsoluto += 30
         }
     }
 
@@ -1219,7 +1342,7 @@ private fun gerarHorarios(abertura: String?, fechamento: String?): List<HorarioR
     when {
         inicioMin == fimMin -> {
             adicionarJanela(0, inicioMin, duracao)
-            if (slots.size < 24) adicionarJanela(1, inicioMin, duracao)
+            if (slots.size < 48) adicionarJanela(1, inicioMin, duracao)
         }
         fimMin < inicioMin -> {
             adicionarJanela(-1, inicioMin, duracao)
@@ -1231,7 +1354,7 @@ private fun gerarHorarios(abertura: String?, fechamento: String?): List<HorarioR
     return slots
         .distinctBy { it.inicioMillis }
         .sortedBy { it.inicioMillis }
-        .take(24)
+        .take(48)
 }
 
 private fun montarInicioReservaPrevistoIso(inicioMillis: Long): String {

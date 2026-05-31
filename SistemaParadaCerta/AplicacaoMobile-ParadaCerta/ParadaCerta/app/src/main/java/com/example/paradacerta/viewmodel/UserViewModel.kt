@@ -172,7 +172,7 @@ class UserViewModel : ViewModel() {
                 val r = response.body() ?: return@launch
                 val status = SessaoStatus.fromString(r.status)
                 _devidaReservaExtra.value = null
-                _sessaoAtiva.value = SessaoAtiva(
+                val sessaoAtual = SessaoAtiva(
                     estacionamentoId = r.estacionamentoId,
                     estacionamentoNome = r.estacionamentoNome,
                     modeloVeiculo = r.modeloVeiculo ?: "",
@@ -187,14 +187,10 @@ class UserViewModel : ViewModel() {
                     status = status,
                     valorPagoAntecipado = r.valorPagoAntecipado ?: 0.0
                 )
+                _sessaoAtiva.value = sessaoAtual
 
-                val reservaEmUso = r.reservado == true && (
-                    status == SessaoStatus.EM_USO ||
-                        (status == SessaoStatus.ATIVA && r.dataHoraConfirmacao != null)
-                    )
-                if (reservaEmUso) {
-                    val baseUso = r.inicioReservaPrevisto ?: r.horaEntrada
-                    val extraMin = (System.currentTimeMillis() - baseUso - 3_600_000L) / 60_000L
+                if (sessaoAtual.emUso) {
+                    val extraMin = (System.currentTimeMillis() - sessaoAtual.inicioUsoParaCalculo - 3_600_000L) / 60_000L
                     if (extraMin > 15) {
                         val extraHoras = kotlin.math.ceil(extraMin / 60.0)
                         _devidaReservaExtra.value = DevidaReservaExtra(

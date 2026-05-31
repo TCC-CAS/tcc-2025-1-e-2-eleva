@@ -25,4 +25,20 @@ data class SessaoAtiva(
         get() = reservado && (status == SessaoStatus.EM_USO ||
                 // compat com reservas legado pré-migração
                 (status == SessaoStatus.ATIVA && dataHoraConfirmacao != null))
+    val inicioUsoParaCalculo: Long
+        get() {
+            val previsto = inicioReservaPrevisto
+            val confirmacao = dataHoraConfirmacao
+            if (previsto != null) {
+                if (confirmacao != null && confirmacao <= previsto - VINTE_MINUTOS_MS) {
+                    return confirmacao
+                }
+                return previsto
+            }
+            return confirmacao ?: horaEntrada
+        }
+
+    companion object {
+        private const val VINTE_MINUTOS_MS = 20 * 60 * 1000L
+    }
 }
