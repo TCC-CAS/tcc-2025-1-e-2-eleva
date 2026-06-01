@@ -1,0 +1,619 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Relatórios - Parada Certa</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-slate-100 text-slate-900 min-h-screen">
+
+  <!-- TOPO -->
+  <header class="bg-white border-b border-slate-200 shadow-sm">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900">
+          Parada<span class="text-green-600">Certa</span>
+        </h1>
+        <p class="text-sm text-slate-500 mt-1">
+          Painel administrativo do estacionamento
+        </p>
+      </div>
+
+      <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+        <nav id="pc-navbar" data-page="relatorios" class="flex flex-wrap gap-4 text-sm items-center"></nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTEÚDO -->
+  <main class="max-w-7xl mx-auto px-6 py-10">
+
+    <!-- TÍTULO -->
+    <section class="mb-8">
+      <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+        <div>
+          <p class="text-green-600 font-semibold mb-2">
+            Relatórios administrativos
+          </p>
+
+          <h2 class="text-3xl md:text-4xl font-bold text-slate-900">
+            Relatórios do Estacionamento
+          </h2>
+
+          <p class="text-slate-600 mt-2 max-w-3xl">
+            Acompanhe capacidade, vagas, preços, reservas e indicadores operacionais dos seus estacionamentos.
+          </p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-2xl px-5 py-4 shadow-sm">
+          <p class="text-sm text-slate-500">Módulo</p>
+          <p class="font-semibold text-slate-900">Relatórios administrativos</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ALERTA ERRO -->
+    <section id="alertaErro" class="hidden mb-8 bg-red-50 border border-red-200 text-red-700 rounded-2xl p-5">
+      Não foi possível carregar os dados do relatório no momento. Tente novamente em instantes.
+    </section>
+
+    <!-- FILTROS -->
+    <section class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm mb-8">
+      <div class="grid md:grid-cols-4 gap-4 items-end">
+        <div>
+          <label class="block text-sm text-slate-600 mb-2 font-medium">Estacionamento</label>
+          <select
+            id="selectEstacionamento"
+            onchange="aplicarFiltros()"
+            class="w-full px-4 py-3 rounded-xl bg-white border border-slate-300 text-slate-900 focus:outline-none focus:border-green-500"
+          >
+            <option value="todos">Todos os estacionamentos</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm text-slate-600 mb-2 font-medium">Tipo de relatório</label>
+          <select
+            id="tipoRelatorio"
+            onchange="aplicarFiltros()"
+            class="w-full px-4 py-3 rounded-xl bg-white border border-slate-300 text-slate-900 focus:outline-none focus:border-green-500"
+          >
+            <option value="geral">Resumo geral</option>
+            <option value="vagas">Vagas</option>
+            <option value="financeiro">Financeiro</option>
+            <option value="operacional">Operacional</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm text-slate-600 mb-2 font-medium">Período</label>
+          <select
+            id="periodo"
+            onchange="aplicarFiltros()"
+            class="w-full px-4 py-3 rounded-xl bg-white border border-slate-300 text-slate-900 focus:outline-none focus:border-green-500"
+          >
+            <option value="hoje">Hoje</option>
+            <option value="semana">Esta semana</option>
+            <option value="mes">Este mês</option>
+            <option value="ano">Este ano</option>
+            <option value="todos">Histórico completo</option>
+          </select>
+        </div>
+
+        <button
+          onclick="carregarEstacionamentos()"
+          class="bg-green-600 hover:bg-green-700 text-white font-bold px-5 py-3 rounded-xl transition"
+        >
+          Atualizar relatório
+        </button>
+      </div>
+    </section>
+
+    <!-- CARDS -->
+    <section class="grid sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-8">
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+        <p class="text-sm text-slate-500">Estacionamentos</p>
+        <h3 id="cardEstacionamentos" class="text-3xl font-bold mt-2 text-slate-900">0</h3>
+        <p class="text-xs text-slate-500 mt-2">Registros ativos no sistema</p>
+      </div>
+
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+        <p class="text-sm text-slate-500">Entradas no período</p>
+        <h3 id="cardTotalVagas" class="text-3xl font-bold mt-2 text-blue-600">0</h3>
+        <p class="text-xs text-slate-500 mt-2">Histórico conforme filtro</p>
+      </div>
+
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+        <p class="text-sm text-slate-500">Sessões encerradas</p>
+        <h3 id="cardDisponiveis" class="text-3xl font-bold mt-2 text-green-600">0</h3>
+        <p class="text-xs text-slate-500 mt-2">Finalizadas no período</p>
+      </div>
+
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+        <p class="text-sm text-slate-500">Receita confirmada</p>
+        <h3 id="cardReceita" class="text-3xl font-bold mt-2 text-green-600">R$ 0,00</h3>
+        <p class="text-xs text-slate-500 mt-2">Pagamentos no período</p>
+      </div>
+    </section>
+
+    <!-- INDICADORES -->
+    <section class="grid lg:grid-cols-3 gap-6 mb-8">
+
+      <!-- Ocupação -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+        <h3 class="text-xl font-bold text-slate-900 mb-4">
+          Ocupação geral
+        </h3>
+
+        <div class="space-y-4">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm text-slate-600">Ocupação por entradas</span>
+              <span id="ocupacaoTexto" class="text-sm font-bold text-green-600">0%</span>
+            </div>
+
+            <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden">
+              <div id="barraOcupacao" class="h-full bg-green-600 rounded-full" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+              <p class="text-xs text-slate-500">Entradas</p>
+              <p id="ocupadasInfo" class="text-2xl font-bold text-slate-900">0</p>
+            </div>
+
+            <div class="bg-green-50 border border-green-200 rounded-xl p-4">
+              <p class="text-xs text-green-700">Encerradas</p>
+              <p id="livresInfo" class="text-2xl font-bold text-green-700">0</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reservas -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+        <h3 class="text-xl font-bold text-slate-900 mb-4">
+          Reservas
+        </h3>
+
+        <div class="space-y-4">
+          <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+            <p class="text-sm text-blue-700">Reservas no período</p>
+            <p id="reservaveisInfo" class="text-3xl font-bold text-blue-700 mt-1">0</p>
+          </div>
+
+          <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+            <p class="text-sm text-yellow-700">Canceladas no período</p>
+            <p id="reservadasInfo" class="text-3xl font-bold text-yellow-700 mt-1">0</p>
+          </div>
+
+          <p class="text-sm text-slate-600">
+            Os números acima usam o histórico filtrado pela data de entrada da sessão.
+          </p>
+        </div>
+      </div>
+
+      <!-- Financeiro -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+        <h3 class="text-xl font-bold text-slate-900 mb-4">
+          Financeiro estimado
+        </h3>
+
+        <div class="space-y-4">
+          <div class="bg-green-50 border border-green-200 rounded-xl p-4">
+            <p class="text-sm text-green-700">Ticket médio</p>
+            <p id="precoMedioInfo" class="text-3xl font-bold text-green-700 mt-1">R$ 0,00</p>
+          </div>
+
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <p class="text-sm text-slate-500">Maior pagamento</p>
+            <p id="ticketInfo" class="text-3xl font-bold text-slate-900 mt-1">R$ 0,00</p>
+          </div>
+
+          <p class="text-sm text-slate-600">
+            A receita considera sessões encerradas com pagamento confirmado no período.
+          </p>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- TABELA -->
+    <section class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm mb-8">
+      <div class="px-6 py-5 border-b border-slate-200 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h3 class="text-xl font-bold text-slate-900">
+            Relatório por estacionamento
+          </h3>
+          <p class="text-sm text-slate-500 mt-1">
+            Resumo consolidado dos seus estacionamentos.
+          </p>
+        </div>
+
+        <button
+          onclick="exportarRelatorioDemo()"
+          class="bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 font-bold px-4 py-2 rounded-xl transition text-sm"
+        >
+          Exportar resumo
+        </button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-50 text-slate-600">
+            <tr>
+              <th class="px-6 py-4 text-left font-semibold">Estacionamento</th>
+              <th class="px-6 py-4 text-left font-semibold">Entradas</th>
+              <th class="px-6 py-4 text-left font-semibold">Encerradas</th>
+              <th class="px-6 py-4 text-left font-semibold">Reservas</th>
+              <th class="px-6 py-4 text-left font-semibold">Ticket médio</th>
+              <th class="px-6 py-4 text-left font-semibold">Receita confirmada</th>
+              <th class="px-6 py-4 text-left font-semibold">Status</th>
+            </tr>
+          </thead>
+
+          <tbody id="tabelaRelatorio" class="divide-y divide-slate-200"></tbody>
+        </table>
+      </div>
+
+      <div id="mensagemVazia" class="hidden px-6 py-10 text-center text-slate-500">
+        Nenhum dado encontrado para o relatório.
+      </div>
+    </section>
+
+    <!-- OBSERVAÇÕES -->
+    <section class="bg-green-50 border border-green-200 rounded-2xl p-5">
+      <p class="text-green-800 font-bold mb-1">
+        Receita real
+      </p>
+      <p class="text-sm text-green-800">
+        Os indicadores históricos usam as entradas e pagamentos registrados dentro do período escolhido.
+      </p>
+    </section>
+
+  </main>
+
+  <script src="pc-config.js"></script>
+  <script src="pc-api.js"></script>
+
+  <script>
+    const sessao = pcRequireSession();
+    const ADMIN_ID = sessao.id;
+
+    let estacionamentos = [];
+    let relatorioAtual = [];
+    let relatorioMetricas = new Map();
+
+    const formatarMoeda = pcFormatarMoeda;
+    const normalizarAtivo = pcAtivoValor;
+
+    function metricaVazia() {
+      return {
+        totalSessoes: 0,
+        totalEncerradas: 0,
+        totalReservas: 0,
+        sessoesCanceladas: 0,
+        ocupacaoMediaPct: 0,
+        ticketMedio: 0,
+        totalRecebido: 0,
+        maiorPagamento: 0
+      };
+    }
+
+    function metricaDe(estacionamentoId) {
+      return relatorioMetricas.get(Number(estacionamentoId)) || metricaVazia();
+    }
+
+    function somaMetricas(lista) {
+      return lista.reduce((acc, e) => {
+        const m = metricaDe(e.id);
+        acc.totalSessoes += Number(m.totalSessoes || 0);
+        acc.totalEncerradas += Number(m.totalEncerradas || 0);
+        acc.totalReservas += Number(m.totalReservas || 0);
+        acc.sessoesCanceladas += Number(m.sessoesCanceladas || 0);
+        acc.totalRecebido += Number(m.totalRecebido || 0);
+        acc.maiorPagamento = Math.max(acc.maiorPagamento, Number(m.maiorPagamento || 0));
+        if (Number(m.ticketMedio || 0) > 0) {
+          acc._ticketSoma += Number(m.ticketMedio || 0);
+          acc._ticketQtd += 1;
+        }
+        return acc;
+      }, { ...metricaVazia(), _ticketSoma: 0, _ticketQtd: 0 });
+    }
+
+    async function carregarMetricasPeriodo() {
+      const periodo = document.getElementById("periodo").value;
+      const novaMetricas = new Map();
+
+      await Promise.all(relatorioAtual.map(async (e) => {
+        try {
+          const [analitico, financeiro] = await Promise.all([
+            pcFetch("/api/operacao/" + e.id + "/analitico?periodo=" + encodeURIComponent(periodo)),
+            pcFetch("/api/financeiro/" + e.id + "/resumo?periodo=" + encodeURIComponent(periodo))
+          ]);
+
+          novaMetricas.set(Number(e.id), {
+            totalSessoes: Number(analitico?.totalSessoes || 0),
+            totalEncerradas: Number(analitico?.totalEncerradas || 0),
+            totalReservas: Number(analitico?.totalReservas || 0),
+            sessoesCanceladas: Number(analitico?.sessoesCanceladas || 0),
+            ocupacaoMediaPct: Number(analitico?.ocupacaoMediaPct || 0),
+            ticketMedio: Number(financeiro?.ticketMedio ?? analitico?.ticketMedio ?? 0),
+            totalRecebido: Number(financeiro?.totalRecebido || 0),
+            maiorPagamento: Number(financeiro?.maiorPagamento || 0)
+          });
+        } catch (erro) {
+          console.warn("Falha ao carregar métricas do relatório:", e.id, erro.message);
+          novaMetricas.set(Number(e.id), metricaVazia());
+        }
+      }));
+
+      relatorioMetricas = novaMetricas;
+    }
+
+    async function carregarEstacionamentos() {
+      try {
+        estacionamentos = await pcFetch("/api/estacionamentos?adminId=" + encodeURIComponent(ADMIN_ID));
+        document.getElementById("alertaErro").classList.add("hidden");
+
+        preencherSelect();
+        aplicarFiltros();
+
+      } catch (erro) {
+        console.error("Erro:", erro);
+        document.getElementById("alertaErro").classList.remove("hidden");
+
+        estacionamentos = [];
+        aplicarFiltros();
+      }
+    }
+
+    function preencherSelect() {
+      const select = document.getElementById("selectEstacionamento");
+      const valorAtual = select.value;
+
+      select.innerHTML = `<option value="todos">Todos os estacionamentos</option>`;
+
+      estacionamentos.forEach((e) => {
+        const option = document.createElement("option");
+        option.value = e.id;
+        option.textContent = `${e.nome || "Sem nome"} - ID ${e.id}`;
+        select.appendChild(option);
+      });
+
+      if (valorAtual) {
+        select.value = valorAtual;
+      }
+    }
+
+    async function aplicarFiltros() {
+      const estacionamentoId = document.getElementById("selectEstacionamento").value;
+
+      if (estacionamentoId === "todos") {
+        relatorioAtual = [...estacionamentos];
+      } else {
+        relatorioAtual = estacionamentos.filter((e) => String(e.id) === String(estacionamentoId));
+      }
+
+      await carregarMetricasPeriodo();
+      atualizarCards();
+      atualizarIndicadores();
+      preencherTabela();
+    }
+
+    function atualizarCards() {
+      const totalEstacionamentos = relatorioAtual.length;
+      const metricas = somaMetricas(relatorioAtual);
+
+      document.getElementById("cardEstacionamentos").innerText = totalEstacionamentos;
+      document.getElementById("cardTotalVagas").innerText = metricas.totalSessoes;
+      document.getElementById("cardDisponiveis").innerText = metricas.totalEncerradas;
+      document.getElementById("cardReceita").innerText = formatarMoeda(metricas.totalRecebido);
+    }
+
+    function atualizarIndicadores() {
+      const metricas = somaMetricas(relatorioAtual);
+      const capacidade = relatorioAtual.reduce((soma, e) => soma + Number(e.qtdVagasTotais || 0), 0);
+      const ocupacao = capacidade > 0
+        ? Math.round((metricas.totalSessoes / capacidade) * 100)
+        : 0;
+      const ticketMedio = metricas._ticketQtd > 0 ? metricas._ticketSoma / metricas._ticketQtd : 0;
+
+      document.getElementById("ocupacaoTexto").innerText = `${ocupacao}%`;
+      document.getElementById("barraOcupacao").style.width = `${Math.min(ocupacao, 100)}%`;
+
+      document.getElementById("ocupadasInfo").innerText = metricas.totalSessoes;
+      document.getElementById("livresInfo").innerText = metricas.totalEncerradas;
+
+      document.getElementById("reservaveisInfo").innerText = metricas.totalReservas;
+      document.getElementById("reservadasInfo").innerText = metricas.sessoesCanceladas;
+
+      document.getElementById("precoMedioInfo").innerText = formatarMoeda(ticketMedio);
+      document.getElementById("ticketInfo").innerText = formatarMoeda(metricas.maiorPagamento);
+    }
+
+    function preencherTabela() {
+      const tbody = document.getElementById("tabelaRelatorio");
+      const mensagemVazia = document.getElementById("mensagemVazia");
+
+      tbody.innerHTML = "";
+
+      if (relatorioAtual.length === 0) {
+        mensagemVazia.classList.remove("hidden");
+        return;
+      }
+
+      mensagemVazia.classList.add("hidden");
+
+      relatorioAtual.forEach((e) => {
+        const m = metricaDe(e.id);
+        const entradas = Number(m.totalSessoes || 0);
+        const encerradas = Number(m.totalEncerradas || 0);
+        const reservas = Number(m.totalReservas || 0);
+        const canceladas = Number(m.sessoesCanceladas || 0);
+        const ticketMedio = Number(m.ticketMedio || 0);
+        const receita = Number(m.totalRecebido || 0);
+        const ativo = normalizarAtivo(e.ativo);
+
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-slate-50 transition";
+
+        tr.innerHTML = `
+          <td class="px-6 py-4">
+            <div class="font-semibold text-slate-900">${e.nome || "-"}</div>
+            <div class="text-xs text-slate-500">${e.endereco || "-"}</div>
+          </td>
+
+          <td class="px-6 py-4">
+            <div class="font-semibold text-slate-900">${entradas}</div>
+            <div class="text-xs text-slate-500">entradas no filtro</div>
+          </td>
+
+          <td class="px-6 py-4">
+            <div class="font-semibold text-slate-900">${encerradas}</div>
+            <div class="text-xs text-slate-500">sessões pagas/finalizadas</div>
+          </td>
+
+          <td class="px-6 py-4">
+            <div class="font-semibold text-slate-900">${reservas}</div>
+            <div class="text-xs text-slate-500">${canceladas} canceladas</div>
+          </td>
+
+          <td class="px-6 py-4 font-bold text-green-600">
+            ${formatarMoeda(ticketMedio)}
+          </td>
+
+          <td class="px-6 py-4 font-bold text-slate-900">
+            ${formatarMoeda(receita)}
+          </td>
+
+          <td class="px-6 py-4">
+            <span class="px-3 py-1 rounded-full text-xs font-semibold ${
+              ativo
+                ? "bg-green-100 text-green-700 border border-green-200"
+                : "bg-red-100 text-red-700 border border-red-200"
+            }">
+              ${ativo ? "Ativo" : "Inativo"}
+            </span>
+          </td>
+        `;
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    function exportarRelatorioDemo() {
+      if (!Array.isArray(relatorioAtual) || relatorioAtual.length === 0) {
+        pcAviso("Não há dados disponíveis para exportação no período selecionado.");
+        return;
+      }
+
+      const totalEstacionamentos = relatorioAtual.length;
+      const metricas = somaMetricas(relatorioAtual);
+      const capacidade = relatorioAtual.reduce((soma, e) => soma + Number(e.qtdVagasTotais || 0), 0);
+      const ocupacao = capacidade > 0 ? Math.round((metricas.totalSessoes / capacidade) * 100) : 0;
+
+      const estacionamentoNome = document.getElementById("selectEstacionamento").selectedOptions[0]?.textContent || "Todos";
+      const tipo    = document.getElementById("tipoRelatorio").selectedOptions[0]?.textContent || "Resumo geral";
+      const periodo = document.getElementById("periodo").selectedOptions[0]?.textContent || "-";
+      const geradoEm = new Date().toLocaleString("pt-BR");
+
+      function esc(v) {
+        return String(v == null ? "" : v)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      const janela = window.open("", "_blank");
+      if (!janela) {
+        pcAviso("Permita pop-ups deste site para exportar o relatório em PDF.");
+        return;
+      }
+
+      const doc = janela.document;
+      doc.open();
+      doc.write('<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Relatório Parada Certa<\/title><\/head><body><\/body><\/html>');
+      doc.close();
+
+      const head = doc.head || doc.getElementsByTagName("head")[0];
+      const style = doc.createElement("style");
+      style.appendChild(doc.createTextNode(
+        '@page{size:A4;margin:16mm}' +
+        'body{font-family:Arial,sans-serif;color:#0f172a;margin:0}' +
+        'h1{font-size:24px;margin:0 0 4px}h2{font-size:15px;margin:22px 0 10px}' +
+        '.muted{color:#64748b}' +
+        '.header{border-bottom:3px solid #16a34a;padding-bottom:14px;margin-bottom:18px}' +
+        '.brand{font-weight:800;color:#166534}' +
+        '.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}' +
+        '.card{border:1px solid #dbe3ea;border-radius:8px;padding:10px;background:#f8fafc}' +
+        '.card p{margin:0;color:#64748b;font-size:11px}' +
+        '.card strong{display:block;font-size:18px;margin-top:4px}' +
+        'table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px}' +
+        'th{background:#f1f5f9;text-align:left;color:#475569}' +
+        'th,td{border:1px solid #dbe3ea;padding:7px;vertical-align:top}' +
+        'td span{color:#64748b;font-size:10px}' +
+        '.footer{margin-top:18px;font-size:10px;color:#64748b;border-top:1px solid #dbe3ea;padding-top:10px}' +
+        '@media print{button{display:none}}'
+      ));
+      head.appendChild(style);
+
+      const linhasHtml = relatorioAtual.map(e => {
+        const total = Number(e.qtdVagasTotais || 0);
+        const m = metricaDe(e.id);
+        return '<tr>'
+          + '<td><strong>' + esc(e.nome || '-') + '</strong><br><span>' + esc(e.endereco || '-') + '</span></td>'
+          + '<td>' + Number(m.totalSessoes || 0) + '<br><span>capacidade: ' + total + '</span></td>'
+          + '<td>' + Number(m.totalEncerradas || 0) + '</td>'
+          + '<td>' + Number(m.totalReservas || 0) + '<br><span>' + Number(m.sessoesCanceladas || 0) + ' canceladas</span></td>'
+          + '<td>' + esc(formatarMoeda(m.ticketMedio || 0)) + '</td>'
+          + '<td>' + esc(formatarMoeda(m.totalRecebido || 0)) + '</td>'
+          + '<td>' + (normalizarAtivo(e.ativo) ? 'Ativo' : 'Inativo') + '</td>'
+          + '</tr>';
+      }).join('');
+
+      doc.body.innerHTML =
+        '<section class="header"><div class="brand">Parada Certa</div><h1>Relatório administrativo</h1>'
+        + '<div class="muted">Gerado em ' + esc(geradoEm) + '</div></section>'
+        + '<p><strong>Estacionamento:</strong> ' + esc(estacionamentoNome)
+        + '<br><strong>Tipo:</strong> ' + esc(tipo)
+        + '<br><strong>Período:</strong> ' + esc(periodo) + '</p>'
+        + '<section class="grid">'
+        +   '<div class="card"><p>Estacionamentos</p><strong>' + totalEstacionamentos + '</strong></div>'
+        +   '<div class="card"><p>Entradas no período</p><strong>' + metricas.totalSessoes + '</strong></div>'
+        +   '<div class="card"><p>Encerradas</p><strong>' + metricas.totalEncerradas + '</strong></div>'
+        +   '<div class="card"><p>Receita confirmada</p><strong>' + esc(formatarMoeda(metricas.totalRecebido)) + '</strong></div>'
+        + '</section>'
+        + '<section class="grid" style="margin-top:10px">'
+        +   '<div class="card"><p>Capacidade atual</p><strong>' + capacidade + '</strong></div>'
+        +   '<div class="card"><p>Entradas/capacidade</p><strong>' + ocupacao + '%</strong></div>'
+        +   '<div class="card"><p>Reservas</p><strong>' + metricas.totalReservas + '</strong></div>'
+        +   '<div class="card"><p>Canceladas</p><strong>' + metricas.sessoesCanceladas + '</strong></div>'
+        + '</section>'
+        + '<h2>Detalhamento por estacionamento</h2>'
+        + '<table><thead><tr>'
+        +   '<th>Estacionamento</th><th>Entradas</th><th>Encerradas</th><th>Reservas</th>'
+        +   '<th>Ticket médio</th><th>Receita</th><th>Status</th>'
+        + '</tr></thead><tbody>' + linhasHtml + '</tbody></table>'
+        + '<div class="footer">Documento gerado pelo painel Parada Certa.</div>';
+
+      // Abre o diálogo de impressão na janela auxiliar — sem inline <script> no HTML.
+      try {
+        janela.focus();
+        setTimeout(() => { try { janela.print(); } catch (_) {} }, 250);
+      } catch (_) {}
+    }
+
+    const sair = pcSair;
+
+    carregarEstacionamentos();
+  </script>
+
+</body>
+</html>
