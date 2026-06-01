@@ -15,6 +15,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -192,7 +194,11 @@ fun LoginScreen(
                 onClick = {
                     viewModel.loginUser(login = identifier.text, senha = password)
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics {
+                        contentDescription = if (loginState.isLoading) "Entrando" else "Entrar"
+                    },
                 enabled = !loginState.isLoading
             ) {
                 if (loginState.isLoading) {
@@ -208,6 +214,9 @@ fun LoginScreen(
             loginState.errorMessage?.let { erro ->
                 Spacer(modifier = Modifier.height(8.dp))
                 Card(
+                    modifier = Modifier.semantics {
+                        contentDescription = "Erro de login: $erro"
+                    },
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer
                     )

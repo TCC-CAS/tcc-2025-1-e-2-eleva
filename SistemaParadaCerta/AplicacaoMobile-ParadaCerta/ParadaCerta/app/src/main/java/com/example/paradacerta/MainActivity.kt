@@ -117,7 +117,7 @@ private fun BottomNavigationBar(
                 icon = {
                     Icon(
                         imageVector = item.icon,
-                        contentDescription = item.title
+                        contentDescription = null
                     )
                 },
                 label = { Text(item.title) },

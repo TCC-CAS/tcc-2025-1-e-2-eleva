@@ -9,6 +9,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.paradacerta.models.EstacionamentoStatus
@@ -48,9 +50,18 @@ fun StatusFuncionamentoBadge(
             if (isOnPrimary) Color(0xFF4B5563) else Color(0xFF4B5563)
         )
     }
+    val descricao = when (status) {
+        EstacionamentoStatus.Aberto -> "Estacionamento aberto"
+        EstacionamentoStatus.Aberto24Horas -> "Estacionamento aberto 24 horas"
+        EstacionamentoStatus.Fechado -> "Estacionamento fechado"
+        EstacionamentoStatus.SemHorario -> "Horario de funcionamento nao informado"
+    }
 
     Box(
         modifier = modifier
+            .semantics {
+                contentDescription = descricao
+            }
             .background(color = fundo, shape = RoundedCornerShape(percent = 50))
             .padding(horizontal = 10.dp, vertical = 4.dp)
     ) {

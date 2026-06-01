@@ -17,6 +17,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -201,7 +203,10 @@ fun RatingScreen(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp),
+                        .padding(horizontal = 24.dp)
+                        .semantics {
+                            contentDescription = "Erro ao enviar avaliacao: $msg"
+                        },
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer
                     )
@@ -257,10 +262,17 @@ private fun StarButton(
         modifier = Modifier
             .size(56.dp)
             .scale(escala)
+            .semantics {
+                contentDescription = buildString {
+                    append("Selecionar $index estrela")
+                    if (index > 1) append("s")
+                    append(if (preenchida) ", selecionada" else ", nao selecionada")
+                }
+            }
     ) {
         Icon(
             imageVector = if (preenchida) Icons.Filled.Star else Icons.Outlined.StarOutline,
-            contentDescription = "$index estrela${if (index > 1) "s" else ""}",
+            contentDescription = null,
             tint = cor,
             modifier = Modifier.size(44.dp)
         )

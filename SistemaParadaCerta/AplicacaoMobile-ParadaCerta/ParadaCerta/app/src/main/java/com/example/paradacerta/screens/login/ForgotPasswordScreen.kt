@@ -19,6 +19,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -235,7 +237,12 @@ private fun Passo1Solicitar(
 
         errorMessage?.let {
             Spacer(modifier = Modifier.height(12.dp))
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
+            Card(
+                modifier = Modifier.semantics {
+                    contentDescription = "Erro: $it"
+                },
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+            ) {
                 Text(it, color = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall)
             }
         }
@@ -325,7 +332,10 @@ private fun Passo2Confirmar(
             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
             trailingIcon = {
                 IconButton(onClick = { senhaVisible = !senhaVisible }) {
-                    Icon(if (senhaVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility, contentDescription = null)
+                    Icon(
+                        if (senhaVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                        contentDescription = if (senhaVisible) "Ocultar senha" else "Mostrar senha"
+                    )
                 }
             },
             visualTransformation = if (senhaVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -348,7 +358,10 @@ private fun Passo2Confirmar(
             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
             trailingIcon = {
                 IconButton(onClick = { confirmarVisible = !confirmarVisible }) {
-                    Icon(if (confirmarVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility, contentDescription = null)
+                    Icon(
+                        if (confirmarVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                        contentDescription = if (confirmarVisible) "Ocultar senha" else "Mostrar senha"
+                    )
                 }
             },
             visualTransformation = if (confirmarVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -392,7 +405,12 @@ private fun Passo2Confirmar(
 
         errorMessage?.let {
             Spacer(modifier = Modifier.height(12.dp))
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
+            Card(
+                modifier = Modifier.semantics {
+                    contentDescription = "Erro: $it"
+                },
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+            ) {
                 Text(it, color = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall)
             }
         }

@@ -19,6 +19,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -549,6 +553,14 @@ fun PaymentScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .semantics(mergeDescendants = true) {
+                                    contentDescription = buildString {
+                                        append(if (isSelected) "Cartao selecionado. " else "Selecionar cartao. ")
+                                        append("${card.bandeira ?: "Cartao"} final $final4")
+                                        if (!card.nomeCartao.isNullOrBlank()) append(", ${card.nomeCartao}")
+                                    }
+                                    role = Role.Button
+                                }
                                 .border(
                                     width = if (isSelected) 2.dp else 1.dp,
                                     color = if (isSelected) MaterialTheme.colorScheme.primary
@@ -757,7 +769,11 @@ fun PaymentScreen(
                     text = erro,
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics {
+                            contentDescription = "Erro no pagamento: $erro"
+                        }
                 )
             }
 
@@ -765,7 +781,15 @@ fun PaymentScreen(
 
             Button(
                 onClick = { showConfirmDialog = true },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics {
+                        contentDescription = if (pagamentoEmAndamento) {
+                            if (reservaState.isLoading) "Criando reserva" else "Processando pagamento"
+                        } else {
+                            "Confirmar pagamento"
+                        }
+                    },
                 shape = RoundedCornerShape(12.dp),
                 enabled = botaoHabilitado && !pagamentoEmAndamento
             ) {

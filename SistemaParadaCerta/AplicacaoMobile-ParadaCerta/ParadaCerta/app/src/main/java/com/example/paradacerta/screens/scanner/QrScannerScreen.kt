@@ -23,6 +23,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -688,7 +692,15 @@ private fun CameraPreviewWithScanner(
 
                 previewView
             },
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .semantics {
+                    contentDescription = if (modoConfirmacao) {
+                        "Leitor de QR Code para confirmar reserva"
+                    } else {
+                        "Leitor de QR Code para entrada ou pagamento"
+                    }
+                }
         )
 
         // Overlay escuro ao redor do quadro de scan
@@ -835,7 +847,12 @@ internal fun VeiculoPickerDialog(
                 veiculos.forEach { veiculo ->
                     Card(
                         onClick = { onVeiculoSelecionado(veiculo) },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .semantics(mergeDescendants = true) {
+                                contentDescription = "Selecionar veiculo ${veiculo.placa}, ${veiculo.nome}, cor ${veiculo.cor}"
+                                role = Role.Button
+                            },
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surfaceVariant
                         )

@@ -57,6 +57,8 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -350,7 +352,11 @@ fun RegisterScreen(
                         LinearProgressIndicator(
                             progress = { passwordStrength.progress },
                             color = passwordStrength.color,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .semantics {
+                                    contentDescription = "Forca da senha: ${passwordStrength.label}"
+                                }
                         )
                         Text(
                             text = "Força da senha: ${passwordStrength.label}",
@@ -803,6 +809,9 @@ fun RegisterScreen(
                             onCheckedChange = {
                                 acceptedTerms = it
                                 if (showError) showError = false
+                            },
+                            modifier = Modifier.semantics {
+                                contentDescription = "Aceitar Termos de Uso"
                             }
                         )
                         Row(modifier = Modifier.padding(start = 8.dp)) {
@@ -826,6 +835,9 @@ fun RegisterScreen(
                             onCheckedChange = {
                                 acceptedPrivacy = it
                                 if (showError) showError = false
+                            },
+                            modifier = Modifier.semantics {
+                                contentDescription = "Aceitar Politica de Privacidade"
                             }
                         )
                         Row(modifier = Modifier.padding(start = 8.dp)) {
@@ -843,6 +855,9 @@ fun RegisterScreen(
                     if (showError) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Card(
+                            modifier = Modifier.semantics {
+                                contentDescription = "Erro: Voce precisa aceitar os Termos de Uso e a Politica de Privacidade para continuar"
+                            },
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.errorContainer
                             )

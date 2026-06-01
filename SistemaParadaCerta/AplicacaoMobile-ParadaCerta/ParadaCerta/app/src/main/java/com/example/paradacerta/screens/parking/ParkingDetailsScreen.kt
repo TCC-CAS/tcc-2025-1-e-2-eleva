@@ -24,6 +24,10 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
@@ -280,7 +284,11 @@ fun ParkingDetailsScreen(
                     } else if (veiculos.size == 1) {
                         val v = veiculos.first()
                         Card(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .semantics(mergeDescendants = true) {
+                                    contentDescription = "Veiculo selecionado ${v.nome}, placa ${v.placa}"
+                                },
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                             shape = RoundedCornerShape(10.dp)
                         ) {
@@ -309,7 +317,15 @@ fun ParkingDetailsScreen(
                             val selecionado = veiculoSelecionado?.placa == v.placa
                             Card(
                                 onClick = { veiculoSelecionado = v },
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .semantics(mergeDescendants = true) {
+                                        contentDescription = buildString {
+                                            if (selecionado) append("Selecionado. ")
+                                            append("Selecionar veiculo ${v.nome}, placa ${v.placa}")
+                                        }
+                                        role = Role.Button
+                                    },
                                 colors = CardDefaults.cardColors(
                                     containerColor = if (selecionado)
                                         MaterialTheme.colorScheme.primaryContainer
@@ -421,7 +437,11 @@ fun ParkingDetailsScreen(
                 // Mensagem de erro
                 erroReservaLocal?.let { erro ->
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .semantics {
+                                contentDescription = "Erro na reserva: $erro"
+                            },
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
                         shape = RoundedCornerShape(10.dp)
                     ) {

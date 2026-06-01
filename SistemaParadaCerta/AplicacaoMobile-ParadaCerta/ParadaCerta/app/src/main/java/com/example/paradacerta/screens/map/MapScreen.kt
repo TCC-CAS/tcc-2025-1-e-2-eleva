@@ -20,6 +20,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -255,7 +259,11 @@ fun MapScreen(
                 .padding(paddingValues)
         ) {
             GoogleMap(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .semantics {
+                        contentDescription = "Mapa interativo com estacionamentos"
+                    },
                 cameraPositionState = cameraPositionState,
                 properties = MapProperties(isMyLocationEnabled = permissaoConcedida),
                 uiSettings = MapUiSettings(
@@ -314,7 +322,10 @@ fun MapScreen(
                 Card(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .padding(start = 16.dp, end = 16.dp, top = 88.dp),
+                        .padding(start = 16.dp, end = 16.dp, top = 88.dp)
+                        .semantics {
+                            contentDescription = "Erro no mapa: $erro"
+                        },
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer
@@ -562,7 +573,11 @@ private fun PlaceSearchBar(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                 unfocusedBorderColor = Color.Transparent
             ),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics {
+                    contentDescription = "Buscar rua em Sao Paulo"
+                }
         )
 
         if (showSuggestions && predictions.isNotEmpty()) {
@@ -578,6 +593,10 @@ private fun PlaceSearchBar(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .semantics(mergeDescendants = true) {
+                                    contentDescription = "Selecionar endereco ${prediction.getPrimaryText(null)}, ${prediction.getSecondaryText(null)}"
+                                    role = Role.Button
+                                }
                                 .clickable {
                                     placesClient.fetchPlace(
                                         FetchPlaceRequest.newInstance(
@@ -626,9 +645,32 @@ fun EstacionamentoMapCard(
     onDetailsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val statusFuncionamento by rememberEstacionamentoStatus(
+        estacionamento.horarioAbertura,
+        estacionamento.horarioFechamento
+    )
+    val statusTexto = when (statusFuncionamento) {
+        EstacionamentoStatus.Aberto -> "aberto"
+        EstacionamentoStatus.Aberto24Horas -> "aberto 24 horas"
+        EstacionamentoStatus.Fechado -> "fechado"
+        EstacionamentoStatus.SemHorario -> "sem horario informado"
+    }
+    val resumoAcessibilidade = buildString {
+        if (isSelected) append("Selecionado. ")
+        append(estacionamento.nome)
+        append(", R$ ${String.format("%.2f", estacionamento.precoHora)} por hora")
+        append(", avaliacao ${String.format("%.1f", estacionamento.avaliacaoMedia)} estrelas")
+        append(", ${estacionamento.qtdVagasDisponiveis} de ${estacionamento.qtdVagasTotais} vagas disponiveis")
+        append(", $statusTexto")
+    }
+
     Card(
         modifier = modifier
             .width(300.dp)
+            .semantics(mergeDescendants = true) {
+                contentDescription = resumoAcessibilidade
+                role = Role.Button
+            }
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected)
@@ -727,11 +769,6 @@ fun EstacionamentoMapCard(
                     )
                 }
             }
-
-            val statusFuncionamento by rememberEstacionamentoStatus(
-                estacionamento.horarioAbertura,
-                estacionamento.horarioFechamento
-            )
 
             Spacer(modifier = Modifier.height(8.dp))
             Row(

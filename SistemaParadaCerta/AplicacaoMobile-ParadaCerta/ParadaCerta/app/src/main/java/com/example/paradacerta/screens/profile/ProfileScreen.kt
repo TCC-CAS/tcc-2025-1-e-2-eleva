@@ -24,6 +24,11 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.core.app.NotificationManagerCompat
 import com.example.paradacerta.notifications.NotificationPreferencesManager
 import com.example.paradacerta.ui.theme.CinzaMedio
@@ -379,6 +384,10 @@ fun ProfileScreen(
                                 if (checked && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                                     permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
                                 }
+                            },
+                            modifier = Modifier.semantics {
+                                contentDescription = "Lembretes de reserva"
+                                stateDescription = if (reservasEnabled) "ativado" else "desativado"
                             }
                         )
                     }
@@ -517,7 +526,12 @@ private fun ProfileMenuItem(
 ) {
     Card(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) {
+                contentDescription = "$title. $subtitle"
+                role = Role.Button
+            },
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         )
