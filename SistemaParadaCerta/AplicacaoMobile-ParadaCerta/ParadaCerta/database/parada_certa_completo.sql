@@ -175,6 +175,7 @@ CREATE TABLE [dbo].[Avaliacao] (
     [dataAvaliacao]    [datetime]      NOT NULL DEFAULT GETDATE(),
 
     CONSTRAINT PK_Avaliacao                PRIMARY KEY CLUSTERED ([id] ASC),
+    CONSTRAINT UQ_Avaliacao_Estacionamento_ClienteCPF UNIQUE ([estacionamentoId], [clienteCPF]),
     CONSTRAINT FK_Avaliacao_Estacionamento FOREIGN KEY ([estacionamentoId])
         REFERENCES [dbo].[Estacionamento] ([id]) ON DELETE CASCADE,
     CONSTRAINT FK_Avaliacao_Cliente        FOREIGN KEY ([clienteCPF])

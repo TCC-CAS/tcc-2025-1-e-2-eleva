@@ -2,6 +2,7 @@ package com.paradacerta.api.service;
 
 import com.paradacerta.api.exception.RequisicaoInvalidaException;
 import com.paradacerta.api.exception.UsuarioNaoEncontradoException;
+import com.paradacerta.api.exception.ConflictException;
 import com.paradacerta.api.model.ApiResponse;
 import com.paradacerta.api.model.Avaliacao;
 import com.paradacerta.api.model.AvaliacaoRequest;
@@ -25,6 +26,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AvaliacaoService {
     private static final ZoneId ZONE_SAO_PAULO = ZoneId.of("America/Sao_Paulo");
+    private static final String MSG_AVALIACAO_DUPLICADA =
+            "Voce ja avaliou este estacionamento. Cada motorista pode fazer apenas uma avaliacao por estacionamento.";
     private static final String MSG_CONTEUDO_INADEQUADO =
             "Seu comentário contém conteúdo inadequado (linguagem ofensiva, violência ou " +
             "conteúdo sensível) e não pôde ser enviado. Por favor, revise e tente novamente.";
@@ -43,11 +46,13 @@ public class AvaliacaoService {
         Cliente cliente = clienteRepository.findByCpf(req.getClienteCpf())
                 .orElseThrow(() -> new UsuarioNaoEncontradoException("Usuário não encontrado"));
 
+        if (avaliacaoRepository.findByEstacionamentoIdAndClienteId(req.getEstacionamentoId(), cliente.getId()).isPresent()) {
+            throw new ConflictException(MSG_AVALIACAO_DUPLICADA);
+        }
+
         String comentarioFinal = validarComentario(req.getComentario());
 
-        Avaliacao avaliacao = avaliacaoRepository
-                .findByEstacionamentoIdAndClienteId(req.getEstacionamentoId(), cliente.getId())
-                .orElseGet(Avaliacao::new);
+        Avaliacao avaliacao = new Avaliacao();
         avaliacao.setEstacionamentoId(req.getEstacionamentoId());
         avaliacao.setClienteId(cliente.getId());
         avaliacao.setNota(req.getNota());

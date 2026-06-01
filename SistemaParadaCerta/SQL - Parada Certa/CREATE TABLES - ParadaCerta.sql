@@ -233,6 +233,7 @@
 
       CONSTRAINT PK_Avaliacao                   PRIMARY KEY CLUSTERED ([id] ASC),
       CONSTRAINT CK_Avaliacao_Nota              CHECK ([nota] BETWEEN 1 AND 5),
+      CONSTRAINT UQ_Avaliacao_Estacionamento_Cliente UNIQUE ([estacionamentoId], [clienteId]),
       CONSTRAINT FK_Avaliacao_Estacionamento    FOREIGN KEY ([estacionamentoId])
           REFERENCES [dbo].[Estacionamento] ([id]),
       CONSTRAINT FK_Avaliacao_Cliente           FOREIGN KEY ([clienteId])

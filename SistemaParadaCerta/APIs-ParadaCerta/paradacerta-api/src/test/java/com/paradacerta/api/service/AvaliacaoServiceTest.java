@@ -1,5 +1,6 @@
 package com.paradacerta.api.service;
 
+import com.paradacerta.api.exception.ConflictException;
 import com.paradacerta.api.model.Avaliacao;
 import com.paradacerta.api.model.AvaliacaoRequest;
 import com.paradacerta.api.model.AvaliacaoResponse;
@@ -15,8 +16,10 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -60,6 +63,34 @@ class AvaliacaoServiceTest {
         verify(avaliacaoRepository).save(any(Avaliacao.class));
         assertThat(estacionamento.getAvaliacaoMedia()).isEqualByComparingTo(new BigDecimal("4.50"));
         verify(estacionamentoRepository).save(estacionamento);
+    }
+
+    @Test
+    void salvarAvaliacaoRejeitaSegundaAvaliacaoDoMesmoClienteParaMesmoEstacionamento() {
+        Estacionamento estacionamento = new Estacionamento();
+        estacionamento.setId(10);
+        Cliente cliente = cliente(7L, "12345678909", "Maria Silva");
+        Avaliacao existente = new Avaliacao();
+        existente.setId(1);
+        existente.setEstacionamentoId(10);
+        existente.setClienteId(7L);
+
+        when(estacionamentoRepository.findById(10)).thenReturn(Optional.of(estacionamento));
+        when(clienteRepository.findByCpf("12345678909")).thenReturn(Optional.of(cliente));
+        when(avaliacaoRepository.findByEstacionamentoIdAndClienteId(10, 7L)).thenReturn(Optional.of(existente));
+
+        AvaliacaoRequest request = new AvaliacaoRequest();
+        request.setEstacionamentoId(10);
+        request.setClienteCpf("12345678909");
+        request.setNota(5);
+        request.setComentario("Novo comentario");
+
+        assertThatThrownBy(() -> service.avaliar(request))
+                .isInstanceOf(ConflictException.class)
+                .hasMessage("Voce ja avaliou este estacionamento. Cada motorista pode fazer apenas uma avaliacao por estacionamento.");
+
+        verify(avaliacaoRepository, never()).save(any(Avaliacao.class));
+        verify(estacionamentoRepository, never()).save(estacionamento);
     }
 
     @Test
